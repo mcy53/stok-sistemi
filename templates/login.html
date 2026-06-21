@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: url('/static/background.jpg') no-repeat center center/cover;
+            position: relative;
+            padding: 15px;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(3px);
+        }
+
+        .box {
+            position: relative;
+            z-index: 2;
+            width: 340px;
+            max-width: 90%;
+            padding: 30px;
+            border-radius: 16px;
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        h2 {
+            color: white;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            border: 1px solid #374151;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56,189,248,0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #38bdf8;
+            color: #0b1220;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0ea5e9;
+        }
+
+        .pass-box {
+            position: relative;
+            width: 100%;
+        }
+
+        .pass-box input {
+            width: 100%;
+            padding: 12px 45px 12px 12px;
+        }
+
+        .eye {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            cursor: pointer;
+            user-select: none;
+            opacity: 0.85;
+        }
+
+        .eye:hover {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .shake {
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .text {
+            margin-top: 10px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        /* =========================
+           📱 RESPONSIVE (SADE VE STABİL)
+        ========================= */
+
+        @media (max-width: 768px) {
+
+            .box {
+                width: 95%;
+                padding: 20px;
+                border-radius: 14px;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+
+            h2 {
+                font-size: 18px;
+            }
+
+            input {
+                padding: 11px;
+                font-size: 14px;
+            }
+
+            button {
+                padding: 11px;
+                font-size: 14px;
+            }
+
+            .text {
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            .box {
+                padding: 16px;
+            }
+
+            h2 {
+                font-size: 16px;
+            }
+
+            .eye {
+                font-size: 18px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="overlay"></div>
+
+<div class="box" id="loginBox">
+
+    <div class="logo">
+        <img src="/static/logo.png">
+    </div>
+
+    <h2>Giriş Yap</h2>
+
+    <form method="POST">
+        <input id="user" name="username" placeholder="Kullanıcı adı">
+
+        <div class="pass-box">
+            <input id="pass" name="password" type="password" placeholder="Şifre">
+            <span class="eye" id="eyeIcon" onclick="togglePassword()">🙈</span>
+        </div>
+
+        <button type="submit">Giriş</button>
+    </form>
+
+    <div class="text">Liva Galvaniz Stok Sistemi</div>
+</div>
+
+<script>
+
+let error = {{ error | default(false) | tojson }};
+
+if (error === true) {
+    Swal.fire({
+        icon: "error",
+        title: "Hatalı Giriş",
+        text: "Kullanıcı adı veya şifre yanlış!"
+    });
+
+    document.getElementById("user").style.border = "1px solid #ef4444";
+    document.getElementById("pass").style.border = "1px solid #ef4444";
+
+    document.getElementById("loginBox").classList.add("shake");
+}
+
+function togglePassword() {
+    let pass = document.getElementById("pass");
+    let eye = document.getElementById("eyeIcon");
+
+    if (pass.type === "password") {
+        pass.type = "text";
+        eye.innerHTML = "🙉";
+    } else {
+        pass.type = "password";
+        eye.innerHTML = "🙈";
+    }
+}
+
+</script>
+
+</body>
+</html>

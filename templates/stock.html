@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stok Panel</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f4f6fb;
+        }
+
+        .main {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #111827;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        input {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            max-width: 120px;
+        }
+
+        button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .add { background: #22c55e; color: white; }
+        .sub { background: #ef4444; color: white; }
+        .del { background: #111827; color: white; }
+
+        .search {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .home-btn {
+            display: inline-block;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: #111827;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .actions form {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="main">
+
+    <a href="/dashboard" class="home-btn">🏠 Ana Menü</a>
+
+    <!-- CREATE -->
+    <div class="card">
+        <h2>➕ Ürün Ekle</h2>
+
+        <form method="POST" id="createForm">
+            <input name="name"
+                   placeholder="ÜRÜN ADI"
+                   oninput="this.value=this.value.toUpperCase()">
+
+            <input name="stock"
+                   id="stockInput"
+                   type="text"
+                   placeholder="STOK MİKTARI">
+
+            <input type="hidden" name="action" value="CREATE">
+
+            <button type="button" class="add" onclick="confirmCreate()">EKLE</button>
+        </form>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="card">
+        <input class="search"
+               id="searchInput"
+               placeholder="🔍 ÜRÜN ARA..."
+               oninput="this.value=this.value.toUpperCase(); filterTable();">
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+
+        <table id="productTable">
+            <tr>
+                <th>ÜRÜN</th>
+                <th>STOK</th>
+                <th>İŞLEM</th>
+            </tr>
+
+            {% for p in products %}
+            <tr>
+                <td><b>{{ p.name }}</b></td>
+                <td class="stock">{{ "{:,}".format(p.stock).replace(",", ".") }}</td>
+
+                <td class="actions">
+
+                    <!-- + -->
+                    <form method="POST">
+                        <input type="hidden" name="action" value="UPDATE">
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="mode" value="add">
+
+                        <input name="amount" placeholder="MİKTAR">
+
+                        <button type="button" class="add" onclick="checkAmountAndSubmit(this)">+ EKLE</button>
+                    </form>
+
+                    <!-- - -->
+                    <form method="POST">
+                        <input type="hidden" name="action" value="UPDATE">
+                        <input type="hidden" name="id" value="{{ p.id }}">
+                        <input type="hidden" name="mode" value="sub">
+
+                        <input name="amount" placeholder="MİKTAR">
+
+                        <button type="button" class="sub" onclick="checkAmountAndSubmit(this)">- ÇIKAR</button>
+                    </form>
+
+                    <!-- DELETE -->
+                    <form method="POST">
+                        <input type="hidden" name="action" value="DELETE">
+                        <input type="hidden" name="id" value="{{ p.id }}">
+
+                        <button type="button" class="del" onclick="confirmDelete(this)">SİL</button>
+                    </form>
+
+                </td>
+            </tr>
+            {% endfor %}
+
+        </table>
+    </div>
+
+</div>
+
+<script>
+
+// 🔥 CORE FIX
+function cleanNumber(v){
+    return v.replace(/\./g,'').replace(/,/g,'').replace(/\s/g,'');
+}
+
+// 🔥 LIVE FORMAT INPUT (10.000 yazdırır)
+function formatInput(el){
+    let value = cleanNumber(el.value);
+    if(!value) return;
+    el.value = Number(value).toLocaleString("tr-TR");
+}
+
+// CREATE
+function confirmCreate(){
+    let form = document.getElementById("createForm");
+
+    let name = form.name.value.trim();
+    let stock = cleanNumber(form.stock.value);
+
+    if(!name || !stock){
+        Swal.fire("Hata","Boş bırakma","error");
+        return;
+    }
+
+    form.stock.value = stock;
+    form.submit();
+}
+
+// UPDATE
+function checkAmountAndSubmit(btn){
+    let form = btn.closest("form");
+    let input = form.querySelector("input[name='amount']");
+
+    let value = cleanNumber(input.value);
+
+    if(!value || parseInt(value) <= 0){
+        Swal.fire("Hata","Geçerli miktar gir","error");
+        return;
+    }
+
+    input.value = value;
+    form.submit();
+}
+
+// DELETE
+function confirmDelete(btn){
+    let form = btn.closest("form");
+
+    Swal.fire({
+        title: "Emin misin?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sil"
+    }).then(r=>{
+        if(r.isConfirmed) form.submit();
+    });
+}
+
+// SEARCH
+function filterTable(){
+    let input = document.getElementById("searchInput").value.toUpperCase();
+    let rows = document.querySelectorAll("#productTable tr");
+
+    for(let i=1;i<rows.length;i++){
+        let text = rows[i].innerText.toUpperCase();
+        rows[i].style.display = text.includes(input) ? "" : "none";
+    }
+}
+
+// attach live format
+document.querySelectorAll("input[name='stock'], input[name='amount']").forEach(el=>{
+    el.addEventListener("input", ()=>formatInput(el));
+});
+
+</script>
+
+</body>
+</html>

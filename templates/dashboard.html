@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Liva Galvaniz Stok</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f4f6fb;
+            display: flex;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 240px;
+            height: 100vh;
+            background: #111827;
+            color: white;
+            padding: 20px;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+
+        .logo-box {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .logo-box img {
+            width: 120px;
+            object-fit: contain;
+        }
+
+        .sidebar a {
+            display: block;
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+        }
+
+        .sidebar a:hover {
+            background: #1f2937;
+            color: white;
+        }
+
+        /* MAIN */
+        .main {
+            margin-left: 260px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .mini-info {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .mini-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            color: white;
+            background: linear-gradient(135deg, #38bdf8, #6366f1);
+        }
+
+        .table-box {
+            margin-top: 5px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .search {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            outline: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #111827;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:nth-child(even) { background: #f8fafc; }
+        tr:hover { background: #e0f2fe; }
+
+        .name { font-weight: bold; }
+        .stock { color: #2dac03; font-weight: 600; }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+
+            body { flex-direction: column; }
+
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                text-align: center;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 12px;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+    <div class="logo-box">
+        <img src="/static/logo.png">
+    </div>
+
+    <a href="/dashboard">🏠 Güncel Stok</a>
+    <a href="/stock">⚙️ Stok Düzenleme</a>
+    <a href="/logout">🚪 Çıkış</a>
+</div>
+
+<div class="main">
+
+    <div class="mini-info">
+        <div class="mini-badge">
+            📦 Toplam Ürün Çeşidi
+            <strong>{{ total_products }}</strong>
+        </div>
+    </div>
+
+    <div class="table-box">
+
+        <input class="search" id="searchInput" placeholder="🔍 Ürün ara...">
+
+        <table id="table">
+            <tr>
+                <th>Ürün Adı</th>
+                <th>Stok Miktarı</th>
+            </tr>
+
+            {% for p in products %}
+            <tr>
+                <td class="name">{{ p.name }}</td>
+                <td class="stock">{{ "{:,}".format(p.stock).replace(",", ".") }}</td>
+            </tr>
+            {% endfor %}
+
+        </table>
+    </div>
+
+</div>
+
+<script>
+document.getElementById("searchInput").addEventListener("keyup", function () {
+    let val = this.value.toUpperCase();
+    let rows = document.querySelectorAll("#table tr");
+
+    for (let i = 1; i < rows.length; i++) {
+        let text = rows[i].innerText.toUpperCase();
+        rows[i].style.display = text.includes(val) ? "" : "none";
+    }
+});
+</script>
+
+</body>
+</html>
