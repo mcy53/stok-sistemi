@@ -36,7 +36,6 @@
 
         .logo-box img {
             width: 120px;
-            object-fit: contain;
         }
 
         .sidebar a {
@@ -67,14 +66,12 @@
         }
 
         .mini-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
             font-size: 13px;
             color: white;
             background: linear-gradient(135deg, #38bdf8, #6366f1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .table-box {
@@ -95,6 +92,11 @@
             outline: none;
         }
 
+        .search:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -105,6 +107,8 @@
             color: white;
             padding: 12px;
             text-align: left;
+            position: sticky;
+            top: 0;
         }
 
         td {
@@ -112,11 +116,33 @@
             border-bottom: 1px solid #eee;
         }
 
-        tr:nth-child(even) { background: #f8fafc; }
-        tr:hover { background: #e0f2fe; }
+        tr:nth-child(even) { background: #f1f5f9; }
+        tr:nth-child(odd) { background: #ffffff; }
+        tr:hover { background: #dbeafe; }
 
-        .name { font-weight: bold; }
-        .stock { color: #2dac03; font-weight: 600; }
+        /* 🔥 UYUMLU LOW STOCK RENK */
+        .low-stock {
+            background: #f8d7da !important;
+            color: #7a1f1f;
+        }
+
+        .low-stock:hover {
+            background: #f1b0b7 !important;
+        }
+
+        .name {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .stock {
+            font-weight: 700;
+            color: #16a34a;
+        }
+
+        .low-stock .stock {
+            color: #7a1f1f;
+        }
 
         /* RESPONSIVE */
         @media (max-width: 768px) {
@@ -161,7 +187,7 @@
 
     <div class="mini-info">
         <div class="mini-badge">
-            📦 Toplam Ürün Çeşidi
+            📦 Toplam Ürün:
             <strong>{{ total_products }}</strong>
         </div>
     </div>
@@ -177,7 +203,7 @@
             </tr>
 
             {% for p in products %}
-            <tr>
+            <tr class="{% if p.stock <= 400 %}low-stock{% endif %}">
                 <td class="name">{{ p.name }}</td>
                 <td class="stock">{{ "{:,}".format(p.stock).replace(",", ".") }}</td>
             </tr>
