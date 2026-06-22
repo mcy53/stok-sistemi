@@ -2,7 +2,6 @@
 <html>
 <head>
     <title>Stok Panel</title>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -15,7 +14,7 @@
         .main {
             padding: 20px;
             max-width: 1200px;
-            margin: 0 auto;
+            margin: auto;
         }
 
         .card {
@@ -34,8 +33,22 @@
             overflow: hidden;
         }
 
+        tr:nth-child(even){background:#eef2ff;}
+        tr:nth-child(odd){background:#ffffff;}
+        tr:hover{background:#dbeafe;}
+
+        /* 🔥 KRİTİK STOK */
+        .low-stock {
+            background: #f8d7da !important;
+            color: #7a1f1f;
+        }
+
+        .low-stock:hover {
+            background: #f1b0b7 !important;
+        }
+
         th {
-            background: #111827;
+            background: #1e293b;
             color: white;
             padding: 12px;
             text-align: left;
@@ -44,14 +57,13 @@
         td {
             padding: 10px;
             border-bottom: 1px solid #eee;
-            vertical-align: top;
         }
 
         input {
             padding: 6px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            max-width: 120px;
+            width: 120px;
         }
 
         button {
@@ -65,13 +77,11 @@
         .sub { background: #ef4444; color: white; }
         .del { background: #111827; color: white; }
 
-        .search {
-            width: 100%;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            text-transform: uppercase;
+        .actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .home-btn {
@@ -84,17 +94,12 @@
             border-radius: 8px;
         }
 
-        .actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .actions form {
-            display: flex;
-            gap: 5px;
-            align-items: center;
+        .search {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -114,29 +119,23 @@
                    placeholder="ÜRÜN ADI"
                    oninput="this.value=this.value.toUpperCase()">
 
-            <input name="stock"
-                   id="stockInput"
-                   type="text"
-                   placeholder="STOK MİKTARI">
+            <input name="stock" class="num" placeholder="STOK">
 
             <input type="hidden" name="action" value="CREATE">
 
-            <button type="button" class="add" onclick="confirmCreate()">EKLE</button>
+            <button type="button" class="add" onclick="create()">EKLE</button>
         </form>
     </div>
 
     <!-- SEARCH -->
     <div class="card">
-        <input class="search"
-               id="searchInput"
-               placeholder="🔍 ÜRÜN ARA..."
-               oninput="this.value=this.value.toUpperCase(); filterTable();">
+        <input class="search" id="search" placeholder="ÜRÜN ARA..." onkeyup="filter()">
     </div>
 
     <!-- TABLE -->
     <div class="card">
 
-        <table id="productTable">
+        <table id="table">
             <tr>
                 <th>ÜRÜN</th>
                 <th>STOK</th>
@@ -144,40 +143,37 @@
             </tr>
 
             {% for p in products %}
-            <tr>
+            <tr class="{% if p.stock <= 400 %}low-stock{% endif %}">
                 <td><b>{{ p.name }}</b></td>
-                <td class="stock">{{ "{:,}".format(p.stock).replace(",", ".") }}</td>
+
+                <td>
+                    {{ "{:,}".format(p.stock).replace(",", ".") }}
+                </td>
 
                 <td class="actions">
 
-                    <!-- + -->
+                    <input type="text" class="num" placeholder="MİKTAR">
+
                     <form method="POST">
                         <input type="hidden" name="action" value="UPDATE">
                         <input type="hidden" name="id" value="{{ p.id }}">
                         <input type="hidden" name="mode" value="add">
-
-                        <input name="amount" placeholder="MİKTAR">
-
-                        <button type="button" class="add" onclick="checkAmountAndSubmit(this)">+ EKLE</button>
+                        <input type="hidden" name="amount">
+                        <button type="button" class="add" onclick="send(this)">+ EKLE</button>
                     </form>
 
-                    <!-- - -->
                     <form method="POST">
                         <input type="hidden" name="action" value="UPDATE">
                         <input type="hidden" name="id" value="{{ p.id }}">
                         <input type="hidden" name="mode" value="sub">
-
-                        <input name="amount" placeholder="MİKTAR">
-
-                        <button type="button" class="sub" onclick="checkAmountAndSubmit(this)">- ÇIKAR</button>
+                        <input type="hidden" name="amount">
+                        <button type="button" class="sub" onclick="send(this)">- ÇIKAR</button>
                     </form>
 
-                    <!-- DELETE -->
                     <form method="POST">
                         <input type="hidden" name="action" value="DELETE">
                         <input type="hidden" name="id" value="{{ p.id }}">
-
-                        <button type="button" class="del" onclick="confirmDelete(this)">SİL</button>
+                        <button type="button" class="del" onclick="del(this)">SİL</button>
                     </form>
 
                 </td>
@@ -191,52 +187,55 @@
 
 <script>
 
-// 🔥 CORE FIX
-function cleanNumber(v){
-    return v.replace(/\./g,'').replace(/,/g,'').replace(/\s/g,'');
+// 🔥 canlı format (1.000)
+function formatNumber(value){
+    return value
+        .replace(/\D/g, "")
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-// 🔥 LIVE FORMAT INPUT (10.000 yazdırır)
-function formatInput(el){
-    let value = cleanNumber(el.value);
-    if(!value) return;
-    el.value = Number(value).toLocaleString("tr-TR");
+document.querySelectorAll(".num").forEach(inp => {
+    inp.addEventListener("input", function () {
+        let raw = this.value.replace(/\D/g, "");
+        this.value = formatNumber(raw);
+    });
+});
+
+function clean(v){
+    return (v || "").toString().replace(/\D/g,'');
 }
 
 // CREATE
-function confirmCreate(){
-    let form = document.getElementById("createForm");
+function create(){
+    let f = document.getElementById("createForm");
 
-    let name = form.name.value.trim();
-    let stock = cleanNumber(form.stock.value);
-
-    if(!name || !stock){
+    if(!f.name.value || !f.stock.value){
         Swal.fire("Hata","Boş bırakma","error");
         return;
     }
 
-    form.stock.value = stock;
-    form.submit();
+    f.stock.value = clean(f.stock.value);
+    f.submit();
 }
 
 // UPDATE
-function checkAmountAndSubmit(btn){
+function send(btn){
     let form = btn.closest("form");
-    let input = form.querySelector("input[name='amount']");
+    let input = form.parentElement.querySelector("input.num");
 
-    let value = cleanNumber(input.value);
+    let val = clean(input.value);
 
-    if(!value || parseInt(value) <= 0){
+    if(!val || val <= 0){
         Swal.fire("Hata","Geçerli miktar gir","error");
         return;
     }
 
-    input.value = value;
+    form.querySelector("input[name='amount']").value = val;
     form.submit();
 }
 
 // DELETE
-function confirmDelete(btn){
+function del(btn){
     let form = btn.closest("form");
 
     Swal.fire({
@@ -250,20 +249,16 @@ function confirmDelete(btn){
 }
 
 // SEARCH
-function filterTable(){
-    let input = document.getElementById("searchInput").value.toUpperCase();
-    let rows = document.querySelectorAll("#productTable tr");
+function filter(){
+    let v = document.getElementById("search").value.toUpperCase();
+    let rows = document.querySelectorAll("#table tr");
 
     for(let i=1;i<rows.length;i++){
-        let text = rows[i].innerText.toUpperCase();
-        rows[i].style.display = text.includes(input) ? "" : "none";
+        rows[i].style.display =
+            rows[i].innerText.toUpperCase().includes(v)
+            ? "" : "none";
     }
 }
-
-// attach live format
-document.querySelectorAll("input[name='stock'], input[name='amount']").forEach(el=>{
-    el.addEventListener("input", ()=>formatInput(el));
-});
 
 </script>
 
