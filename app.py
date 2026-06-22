@@ -6,10 +6,9 @@ import os
 app = Flask(__name__)
 app.secret_key = "stok-secret"
 
-# ---------------- DATABASE (POSTGRESQL / SQLITE fallback) ----------------
+# ---------------- DATABASE ----------------
 uri = os.environ.get("DATABASE_URL", "sqlite:///stok.db")
 
-# Render fix (postgres:// → postgresql://)
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
 
@@ -25,25 +24,24 @@ ADMIN_PASSWORD_HASH = generate_password_hash("53123")
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=False, unique=True)
     stock = db.Column(db.Integer, default=0)
 
 
 # ---------------- SAFE INT ----------------
 def parse_int(value):
     try:
-        return int(str(value).replace(".", "").replace(",", ""))
+        return int(str(value).replace(".", "").replace(",", "").strip())
     except:
         return 0
 
 
-# ---------------- HOME ----------------
+# ---------------- ROUTES ----------------
 @app.route("/")
 def home():
     return redirect("/dashboard") if "user" in session else redirect("/login")
 
 
-# ---------------- LOGIN ----------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -60,13 +58,12 @@ def login():
     return render_template("login.html", error=False)
 
 
-# ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
         return redirect("/login")
 
-    products = Product.query.all()
+    products = Product.query.order_by(Product.id.asc()).all()
 
     return render_template(
         "dashboard.html",
@@ -77,7 +74,6 @@ def dashboard():
     )
 
 
-# ---------------- STOCK ----------------
 @app.route("/stock", methods=["GET", "POST"])
 def stock():
     if "user" not in session:
@@ -87,16 +83,22 @@ def stock():
         return "Yetkin yok"
 
     if request.method == "POST":
-        action = request.form["action"]
+        action = request.form.get("action")
 
-        # CREATE
+        # ---------------- CREATE ----------------
         if action == "CREATE":
             name = request.form["name"].upper().strip()
             stock_val = parse_int(request.form["stock"])
 
+            existing = Product.query.filter_by(name=name).first()
+
+            if existing:
+                # ❌ HATA SAYFASI YOK → geri dön
+                return redirect("/stock?error=exists")
+
             db.session.add(Product(name=name, stock=stock_val))
 
-        # UPDATE
+        # ---------------- UPDATE ----------------
         elif action == "UPDATE":
             product = Product.query.get(request.form["id"])
             amount = parse_int(request.form["amount"])
@@ -105,10 +107,10 @@ def stock():
             if product:
                 if mode == "add":
                     product.stock += amount
-                else:
+                elif mode == "sub":
                     product.stock = max(0, product.stock - amount)
 
-        # DELETE
+        # ---------------- DELETE ----------------
         elif action == "DELETE":
             product = Product.query.get(request.form["id"])
             if product:
@@ -117,20 +119,24 @@ def stock():
         db.session.commit()
         return redirect("/stock")
 
-    products = Product.query.all()
+    products = Product.query.order_by(Product.id.asc()).all()
+
     return render_template("stock.html", products=products)
 
 
-# ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
 
-# ---------------- RUN ----------------
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
 
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        debug=True,
+        use_reloader=True
+    )
